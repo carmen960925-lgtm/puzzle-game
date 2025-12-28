@@ -1,0 +1,184 @@
+:root{
+  --cols:4;
+  --rows:5;
+
+  /* tile aspect ratio 140:100 */
+  --tile-ar: 14 / 10;
+
+  /* ===== Unified tile sizing (pieces == grid slots) =====
+     Adjust the MAX (last number) to make everything bigger/smaller. */
+  --tile-w: clamp(52px, calc((100vw - 48px) / var(--cols)), 96px);
+  --tile-h: calc(var(--tile-w) * 10 / 14);
+
+  --puzzle-w: calc(var(--tile-w) * var(--cols));
+  --puzzle-h: calc(var(--tile-h) * var(--rows));
+
+  --max-content: 1200px;
+  --gap: clamp(10px, 2vw, 20px);
+  --panel-gap: clamp(4px, 1vw, 6px);
+
+  /* MUST match JS breakpoint */
+  --compact-breakpoint: 860px;
+}
+
+*,
+*::before,
+*::after{ box-sizing:border-box; }
+
+body{
+  margin:0;
+  padding:12px;
+  background:#f0f0f0;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  font-family:sans-serif;
+  text-align:center;
+  min-height:100vh;
+  overflow-x:hidden;
+}
+
+header{ margin-bottom:10px; }
+header h1{ margin:0; font-size:24px; }
+
+#feedback{
+  font-size:18px;
+  color:#333;
+  height:24px;
+  margin-top:4px;
+}
+
+#score{ margin:8px 0; font-size:18px; }
+
+#restart, #backBtn{
+  padding:6px 14px;
+  cursor:pointer;
+}
+
+/* ===== Layout (Responsive) ===== */
+main#game-area{
+  width:min(var(--max-content), 100%);
+  margin:0 auto;
+
+  display:grid;
+  grid-template-columns: minmax(170px, 1fr) auto minmax(170px, 1fr);
+  grid-template-areas: "left puzzle right";
+  gap:var(--gap);
+  align-items:start;
+  justify-items:center; /* keeps the fixed-size puzzle centered in its column */
+}
+
+/* Layout areas (desktop) */
+aside#pieces-left{ grid-area:left; }
+section#puzzle{ grid-area:puzzle; }
+aside#pieces-right{ grid-area:right; }
+section#pieces-pool{ grid-area:pool; }
+
+/* ===== Puzzle grid (fixed tile size, no distortion) ===== */
+#puzzle{
+  width: var(--puzzle-w);
+  height: var(--puzzle-h);
+
+  display:grid;
+  grid-template-columns: repeat(var(--cols), var(--tile-w));
+  grid-template-rows: repeat(var(--rows), var(--tile-h));
+  gap:0;
+
+  overflow:hidden;
+}
+
+.slot{
+  position:relative;
+  background:transparent;
+  width: var(--tile-w);
+  height: var(--tile-h);
+}
+
+.slot::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  border:2px dashed rgba(0,0,0,0.35);
+  pointer-events:none;
+}
+
+.slot.filled::after{ border-color:transparent; }
+
+.slot img,
+.piece img{
+  width:100%;
+  height:100%;
+}
+
+.piece img{
+  object-fit:fill;
+  pointer-events:none;
+}
+
+img{
+  -webkit-user-drag: none; /* Chrome/Safari/Edge */
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* ===== Pieces (match tile size) ===== */
+.piece{
+  width: var(--tile-w);
+  height: var(--tile-h);
+
+  cursor:grab;
+  touch-action:none; /* critical for touch dragging */
+  user-select:none;
+}
+
+.piece:active{ cursor:grabbing; }
+
+aside.piece-container{
+  width:100%;
+  display:grid;
+  grid-template-columns: repeat(2, var(--tile-w));
+  gap:var(--panel-gap);
+  align-content:start;
+  justify-content:center;
+}
+
+section#pieces-pool{
+  display:none;
+}
+
+/* ===== Compact layout (phones / narrow screens) ===== */
+@media (max-width: 860px){
+  main#game-area{
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "pool"
+      "puzzle";
+    gap: 14px; /* more breathing room */
+    justify-items:center;
+  }
+
+  aside#pieces-left,
+  aside#pieces-right{
+    display:none;
+  }
+
+  section#pieces-pool{
+    display:grid;
+    grid-template-columns: repeat(var(--cols), var(--tile-w));
+    gap:var(--panel-gap);
+    width: var(--puzzle-w);   /* align with puzzle width */
+    padding-bottom: 2px;
+    margin-bottom: 8px;       /* extra separation from puzzle */
+    justify-content:center;
+  }
+
+  section#puzzle{
+    /* keep within viewport if extremely narrow */
+    max-width: 100%;
+  }
+}
+
+#back-container{
+  text-align:center;
+  margin-top:20px;
+}
