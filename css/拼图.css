@@ -1,0 +1,175 @@
+:root{
+  --cols:4;
+  --rows:5;
+
+  /* 统一：piece 尺寸 = grid 单格尺寸 */
+  --tile-w: clamp(52px, calc((100vw - 48px) / var(--cols)), 96px);
+  --tile-h: calc(var(--tile-w) * 10 / 14); /* 140:100 */
+
+  --puzzle-w: calc(var(--tile-w) * var(--cols));
+  --puzzle-h: calc(var(--tile-h) * var(--rows));
+
+  --gap: 16px;
+  --panel-gap: 6px;
+  --compact-breakpoint: 860px;
+}
+
+*{ box-sizing:border-box; }
+
+body{
+  margin:0;
+  padding:12px;
+  font-family:sans-serif;
+  text-align:center;
+  background:#f0f0f0;
+
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  min-height:100vh;
+
+  overflow-x:hidden; /* 竖屏避免横向滑动 */
+}
+
+header h1{ margin: 6px 0 10px; }
+#feedback{ height: 22px; }
+
+#game-area{
+  width: min(1200px, 100%);
+  display:grid;
+  grid-template-columns: minmax(170px, 1fr) auto minmax(170px, 1fr);
+  grid-template-areas: "left puzzle right";
+  gap: var(--gap);
+  align-items:start;
+  justify-items:center;
+}
+
+#pieces-left{ grid-area:left; }
+#puzzle{ grid-area:puzzle; }
+#pieces-right{ grid-area:right; }
+#pieces-pool{ grid-area:pool; }
+
+/* puzzle：透明背景、无外框（你要的效果） */
+#puzzle{
+  width: var(--puzzle-w) !important;
+  height: var(--puzzle-h) !important;
+  display:grid;
+  grid-template-columns: repeat(var(--cols), var(--tile-w)) !important;
+  grid-template-rows: repeat(var(--rows), var(--tile-h)) !important;
+  gap: 0;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  overflow: hidden;
+}
+
+.slot{
+  width: var(--tile-w) !important;
+  height: var(--tile-h) !important;
+  overflow: hidden; /* 防止图片看起来“撑出格子” */
+  position: relative;
+  background: transparent;
+}
+
+.slot img{
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: fill;          /* 你现在用 fill；想保比例可改 cover */
+}
+
+.slot::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  border:2px dashed rgba(0,0,0,0.35);
+  pointer-events:none;
+}
+
+.slot.filled::after{ border-color: transparent; }
+
+.piece{
+  width: var(--tile-w) !important;
+  height: var(--tile-h) !important;
+  cursor: grab;
+  user-select:none;
+  touch-action:none; /* 关键：触控拖动不滚动页面 */
+}
+
+.piece:active{ cursor: grabbing; }
+
+.piece img{
+  width:100%;
+  height:100%;
+  display:block;
+  object-fit:fill;
+  pointer-events:none;
+  -webkit-user-drag:none;
+  user-select:none;
+}
+
+/* 左右侧容器（桌面/横屏） */
+.piece-container{
+  width:100%;
+  display:grid;
+  grid-template-columns: repeat(2, var(--tile-w));
+  gap: var(--panel-gap);
+  align-content:start;
+  justify-content:center;
+}
+
+/* 竖屏的 pool（上方）默认隐藏，窄屏时显示 */
+#pieces-pool{ display:none; }
+
+/* 控制区 */
+#score{ margin: 12px 0 8px; font-size:18px; }
+#controls{ display:flex; flex-direction: row; align-items:center; gap: 12px !important;}
+button{ padding:6px 14px; cursor:pointer; }
+
+/* ===== 手机竖屏/窄屏：改为上下布局 ===== */
+@media (max-width: 860px){
+  #game-area{
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "pool"
+      "puzzle";
+    justify-items:center;
+    gap: 18px;
+  }
+
+  #pieces-left, #pieces-right{ display:none; }
+
+  #pieces-pool{
+    display:grid;
+    width: var(--puzzle-w);
+    grid-template-columns: repeat(var(--cols), var(--tile-w));
+    gap: var(--panel-gap);
+    justify-content:center;
+    margin-bottom: 4px;
+  }
+}
+
+/* ===== 手机横屏：回到左右布局（像电脑），并按高度缩小 ===== */
+@media (max-width: 860px) and (orientation: landscape){
+  body{ overflow-x: visible; } /* 避免把中间 puzzle 裁掉 */
+
+  /* 横屏按高度缩放 tile，保证整体塞得下 */
+  :root{
+    --tile-h: clamp(30px, calc((100dvh - 140px) / var(--rows)), 56px);
+    --tile-w: calc(var(--tile-h) * 14 / 10);
+    --puzzle-w: calc(var(--tile-w) * var(--cols));
+    --puzzle-h: calc(var(--tile-h) * var(--rows));
+  }
+
+  #game-area{
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    grid-template-areas: "left puzzle right";
+    gap: 12px;
+    align-items:start;
+    justify-items:center;
+    justify-content:center;
+  }
+
+  #pieces-left, #pieces-right{ display:grid !important; }
+  #pieces-pool{ display:none !important; }
+}
