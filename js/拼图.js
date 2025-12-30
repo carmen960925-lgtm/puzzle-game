@@ -8,7 +8,6 @@ const piecesPool = document.getElementById('pieces-pool');
 const scoreDiv = document.getElementById('score');
 const feedback = document.getElementById('feedback');
 const restartBtn = document.getElementById('restart');
-const backBtn = document.getElementById('backBtn');
 
 let score = 0;
 
@@ -244,7 +243,6 @@ function initGame() {
 
 initGame();
 restartBtn.onclick = initGame;
-backBtn.addEventListener('click', () => history.back());
 
 /* Prevent native drag ghost image for IMG (bind once) */
 document.addEventListener('dragstart', (e) => {
@@ -266,3 +264,4 @@ window.addEventListener('orientationchange', forceRelayout);
 if (window.visualViewport) {
   window.visualViewport.addEventListener('resize', forceRelayout);
 }
+
