@@ -1,38 +1,130 @@
+@font-face{
+  font-family: "MixFont";
+  src: url("../fonts/Azim-Light.otf") format("opentype");
+  font-weight: 400;
+  font-style: normal;
+  unicode-range: U+0000-024F, U+2000-206F, U+20A0-20CF;
+}
+
+@font-face{
+  font-family: "MixFont";
+  src: url("../fonts/HYc1gj.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  unicode-range: U+3000-303F, U+3400-4DBF, U+4E00-9FFF, U+FF00-FFEF;
+}
+
 :root{
   --cols:4;
   --rows:5;
 
-  /* 统一：piece 尺寸 = grid 单格尺寸 */
   --tile-w: clamp(52px, calc((100vw - 48px) / var(--cols)), 96px);
-  --tile-h: calc(var(--tile-w) * 10 / 14); /* 140:100 */
+  --tile-h: calc(var(--tile-w) * 10 / 14);
 
   --puzzle-w: calc(var(--tile-w) * var(--cols));
   --puzzle-h: calc(var(--tile-h) * var(--rows));
 
   --gap: 16px;
   --panel-gap: 6px;
+
+  --card-bg: rgba(255,255,255,.55);
+  --card-radius: 16px;
+  --card-shadow: 0 10px 24px rgba(0,0,0,.05);
+
   --compact-breakpoint: 860px;
+}
+
+@media (min-width: 1000px){
+  :root{
+    --tile-h: clamp(72px, calc((100dvh - 390px) / var(--rows)), 96px);
+    --tile-w: calc(var(--tile-h) * 14 / 10);
+
+    --puzzle-w: calc(var(--tile-w) * var(--cols));
+    --puzzle-h: calc(var(--tile-h) * var(--rows));
+  }
 }
 
 *{ box-sizing:border-box; }
 
 body{
   margin:0;
-  padding:12px;
-  font-family:sans-serif;
+  padding: 12px;
+  padding-top: 20px;
+  padding-bottom: 120px;
+
+  font-family:"MixFont", sans-serif;
   text-align:center;
-  background:#f0f0f0;
+
+  background: linear-gradient(180deg, #EAF6FF 0%, #DFF0FF 100%);
 
   display:flex;
   flex-direction:column;
   align-items:center;
-  min-height:100vh;
 
-  overflow-x:hidden; /* 竖屏避免横向滑动 */
+  min-height:100vh;
+  overflow-x:hidden;
 }
 
-header h1{ margin: 6px 0 10px; }
-#feedback{ height: 22px; }
+#pageTitle{
+  width: min(1200px, 100%);
+  margin: 12px auto 6px;
+  text-align: center;
+  font-size: 50px;
+  font-weight: 800;
+  line-height: 1.1;
+
+  text-shadow:
+    -2px -2px 0 #fff,  2px -2px 0 #fff,
+    -2px  2px 0 #fff,  2px  2px 0 #fff,
+     0   -2px 0 #fff,  0    2px 0 #fff,
+    -2px  0   0 #fff,  2px  0   0 #fff,
+     0    4px 10px rgba(0,0,0,.18); 
+}
+
+#instruction{
+  width: min(1200px, 100%);
+  margin: 4px auto 10px;
+  font-size: 25px;
+  font-weight: 700;
+  color: rgba(0,0,0,.72);
+  line-height: 1.25;
+  white-space: nowrap;
+  opacity: .95;
+}
+
+#score{
+  display: inline-block;
+  width: auto;
+  margin: 6px auto 6px;
+  padding: 6px 14px;
+  border-radius: 999px;
+
+  font-size: 20px;
+  font-weight: 600;
+  color: rgba(0, 0, 0, .80);
+  white-space: nowrap;
+
+  background: rgba(255,255,255,.85);
+  border: 1px solid rgba(0,0,0,.08);
+  box-shadow: 0 6px 14px rgba(0,0,0,.06);
+}
+
+#stage{
+  flex: 1;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+#mainWrap{
+  flex: 1;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding-top: 6px;
+}
 
 #game-area{
   width: min(1200px, 100%);
@@ -49,24 +141,56 @@ header h1{ margin: 6px 0 10px; }
 #pieces-right{ grid-area:right; }
 #pieces-pool{ grid-area:pool; }
 
-/* puzzle：透明背景、无外框（你要的效果） */
 #puzzle{
   width: var(--puzzle-w) !important;
   height: var(--puzzle-h) !important;
+  align-self: center;
+
   display:grid;
   grid-template-columns: repeat(var(--cols), var(--tile-w)) !important;
   grid-template-rows: repeat(var(--rows), var(--tile-h)) !important;
-  gap: 0;
-  background: transparent;
-  border: none;
-  box-shadow: none;
+  
+  background: var(--card-bg);
+  border-radius: var(--card-radius);
+  box-shadow: 0 10px 24px rgba(0,0,0,.06);
   overflow: hidden;
+}
+
+.piece-container{
+  width: max-content;
+  justify-self: center;
+
+  display:grid;
+  grid-template-columns: repeat(2, var(--tile-w));
+  gap: var(--panel-gap);
+  align-content:start;
+  justify-content:center;
+
+  background: var(--card-bg);
+  border-radius: var(--card-radius);
+  padding: 10px;
+  box-shadow: var(--card-shadow);
+}
+
+.piece-container.is-empty{
+  background: transparent;
+  box-shadow: none;
+  padding: 0;
+}
+
+#pieces-pool{
+  display:none;
+
+  background: var(--card-bg);
+  border-radius: var(--card-radius);
+  padding: 10px;
+  box-shadow: var(--card-shadow);
 }
 
 .slot{
   width: var(--tile-w) !important;
   height: var(--tile-h) !important;
-  overflow: hidden; /* 防止图片看起来“撑出格子” */
+  overflow: hidden;
   position: relative;
   background: transparent;
 }
@@ -75,25 +199,41 @@ header h1{ margin: 6px 0 10px; }
   width: 100%;
   height: 100%;
   display: block;
-  object-fit: fill;          /* 你现在用 fill；想保比例可改 cover */
+  object-fit: fill;
 }
 
 .slot::after{
   content:"";
   position:absolute;
   inset:0;
-  border:2px dashed rgba(0,0,0,0.35);
+  border:2px dashed rgba(0,0,0,0.22);
   pointer-events:none;
 }
 
 .slot.filled::after{ border-color: transparent; }
+
+.slot.correctPulse{
+  animation: pulseOk .35s ease-out;
+}
+
+.slot.correctPulse::after{
+  border:2px solid rgba(46, 204, 113, .95);
+  box-shadow: 0 0 0 2px rgba(46, 204, 113, .18) inset,
+              0 0 12px rgba(46, 204, 113, .25);
+}
+
+@keyframes pulseOk{
+  from{ transform: scale(1.00); }
+  50%{ transform: scale(1.02); }
+  to{ transform: scale(1.00); }
+}
 
 .piece{
   width: var(--tile-w) !important;
   height: var(--tile-h) !important;
   cursor: grab;
   user-select:none;
-  touch-action:none; /* 关键：触控拖动不滚动页面 */
+  touch-action:none;
 }
 
 .piece:active{ cursor: grabbing; }
@@ -108,23 +248,64 @@ header h1{ margin: 6px 0 10px; }
   user-select:none;
 }
 
-/* 左右侧容器（桌面/横屏） */
-.piece-container{
-  width:100%;
-  display:grid;
-  grid-template-columns: repeat(2, var(--tile-w));
-  gap: var(--panel-gap);
-  align-content:start;
-  justify-content:center;
+.bottomBar{
+  position: fixed;
+  left: 50%;
+  bottom: calc(40px + env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  display: flex;
+  gap: 50px;
+  z-index: 9998;
 }
 
-/* 竖屏的 pool（上方）默认隐藏，窄屏时显示 */
-#pieces-pool{ display:none; }
+.bottomBtn{
+  border: 0;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+  user-select: none;
+}
 
-/* 控制区 */
-#score{ margin: 12px 0 8px; font-size:18px; }
-#controls{ display:flex; flex-direction: row; align-items:center; gap: 12px !important;}
-button{ padding:6px 14px; cursor:pointer; }
+.bottomBtn img{
+  width: 60px;
+  height: auto;
+  display: block;
+  -webkit-user-drag: none;
+  user-select: none;
+}
+
+.bottomBtn:active{ transform: scale(.96); }
+
+.bottomBtn:focus-visible{
+  outline: 3px solid rgba(255,255,255,.85);
+  outline-offset: 3px;
+  border-radius: 999px;
+}
+
+#completeOverlay{
+  position: fixed;
+  inset: 0;
+  display: none;
+  place-items: center;
+  background: rgba(0,0,0,.25);
+  z-index: 9999;
+}
+
+#completeOverlay.show{ display: grid; }
+
+.completeCard{
+  background: #fff;
+  border-radius: 18px;
+  padding: 20px 28px;
+  box-shadow: 0 10px 30px rgba(0,0,0,.18);
+}
+
+.completeText{
+  font-size: 40px;
+  font-weight: 700;
+  line-height: 1.2;
+  text-align:center;
+}
 
 /* ===== 手机竖屏/窄屏：改为上下布局 ===== */
 @media (max-width: 860px){
@@ -147,15 +328,19 @@ button{ padding:6px 14px; cursor:pointer; }
     justify-content:center;
     margin-bottom: 4px;
   }
+
+  #pieces-pool.is-empty{ display: none !important; }
+  #game-area.pool-hidden{ row-gap: 0; }
+
+  #instruction{ white-space: normal; }
+  .bottomBtn img{ width: 80px; }
 }
 
-/* ===== 手机横屏：回到左右布局（像电脑），并按高度缩小 ===== */
 @media (max-width: 860px) and (orientation: landscape){
-  body{ overflow-x: visible; } /* 避免把中间 puzzle 裁掉 */
+  body{ overflow-x: visible; }
 
-  /* 横屏按高度缩放 tile，保证整体塞得下 */
   :root{
-    --tile-h: clamp(30px, calc((100dvh - 140px) / var(--rows)), 56px);
+    --tile-h: clamp(30px, calc((100dvh - 170px) / var(--rows)), 56px);
     --tile-w: calc(var(--tile-h) * 14 / 10);
     --puzzle-w: calc(var(--tile-w) * var(--cols));
     --puzzle-h: calc(var(--tile-h) * var(--rows));
