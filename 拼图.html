@@ -1,38 +1,48 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>拼图游戏</title>
 
   <link rel="stylesheet" href="css/拼图.css">
-
   <script src="js/拼图.js" defer></script>
-
 </head>
 
 <body>
-  <header>
-    <h1>拼图游戏</h1>
-    <div id="feedback"></div>
-  </header>
+  <div id="pageTitle">家人的角色</div>
+  <div id="instruction">🧩 拖一拖，把图片拼完整 🧩</div>
+  <div id="score">进度：0 / 20</div>
+  
+  <div id="stage">
+    <div id="mainWrap">
+      <main id="game-area">
+        <aside class="piece-container" id="pieces-left"></aside>
 
-  <main id="game-area">
-    <aside class="piece-container" id="pieces-left"></aside>
+        <!-- Used on compact screens -->
+        <section id="pieces-pool"></section>
 
-    <!-- Used on compact screens -->
-    <section id="pieces-pool"></section>
+        <section id="puzzle"></section>
 
-    <section id="puzzle"></section>
+        <aside class="piece-container" id="pieces-right"></aside>
+      </main>
+    </div>
+  </div>
 
-    <aside class="piece-container" id="pieces-right"></aside>
-  </main>
+  <!-- 底部粉色按钮条：返回(暂时留空) + 重开 -->
+  <nav class="bottomBar">
+    <button class="bottomBtn" id="btnBack" type="button" alt="返回">
+      <img src="images/btn_home.png" alt="">
+    </button>
 
-  <footer>
-    <div id="score">分数: 0 / 20</div>
-    <button id="restart">游戏重来</button>
-  </footer>
+    <button class="bottomBtn" id="btnRestart" type="button" alt="重开">
+      <img src="images/btn_restart.png" alt="">
+  </nav>
 
+  <div id="completeOverlay" aria-hidden="true">
+    <div class="completeCard">
+      <div class="completeText">🎉 完成了！🎉</div>
+    </div>
+  </div>
 </body>
-
 </html>
