@@ -1,14 +1,22 @@
+/* ===== Config ===== */
 const ROWS = 5, COLS = 4;
-const PIECES = Array.from({ length: ROWS * COLS }, (_, i) => `images/piece_${i}.png`);
+const TOTAL = ROWS * COLS;
+const PIECES = Array.from({ length: TOTAL }, (_, i) => `images/piece_${i}.png`);
+const COMPACT_BREAKPOINT_PX = 860;
 
+/* ===== DOM ===== */
 const puzzle = document.getElementById('puzzle');
 const piecesLeft = document.getElementById('pieces-left');
 const piecesRight = document.getElementById('pieces-right');
 const piecesPool = document.getElementById('pieces-pool');
 const scoreDiv = document.getElementById('score');
-const feedback = document.getElementById('feedback');
-const restartBtn = document.getElementById('restart');
+const completeOverlay = document.getElementById('completeOverlay');
+const gameArea = document.getElementById('game-area');
 
+const btnBack = document.getElementById('btnBack');
+const btnRestart = document.getElementById('btnRestart');
+
+/* ===== State ===== */
 let score = 0;
 
 // Drag state
@@ -18,27 +26,150 @@ let offsetX = 0;
 let offsetY = 0;
 let activePointerId = null;
 
-/* MUST match CSS breakpoint */
-const COMPACT_BREAKPOINT_PX = 860;
-
 /* ===== Layout mode (match CSS) =====
-   - phone portrait (<=860 & portrait): use POOL (top)
-   - phone landscape (<=860 & landscape): use SIDE (left/right)
-   - desktop (>860): use SIDE
+   - phone portrait (<=860 & portrait): POOL (top)
+   - phone landscape (<=860 & landscape): SIDE
+   - desktop (>860): SIDE
 */
 function getLayoutMode() {
   const isNarrow = window.innerWidth <= COMPACT_BREAKPOINT_PX;
-
-  // 更稳：优先用 “宽 > 高” 判断横屏（比 orientation 更可靠）
   const landscapeLike = window.innerWidth > window.innerHeight;
-
-  // 备选：如果你想保留 orientation，也可以：
-  // const landscapeLike = window.matchMedia('(orientation: landscape)').matches || (window.innerWidth > window.innerHeight);
-
-  if (isNarrow && !landscapeLike) return 'POOL';
-  return 'SIDE';
+  return (isNarrow && !landscapeLike) ? 'POOL' : 'SIDE';
 }
 
+function updateProgress(){
+  scoreDiv.textContent = `进度：${score} / ${TOTAL}`;
+}
+
+/* ===== Feedback ===== */
+function pulseSlot(slotEl){
+  slotEl.classList.add('correctPulse');
+  setTimeout(()=>slotEl.classList.remove('correctPulse'), 380);
+}
+
+/* ===== Sound (no external files) ===== */
+let audioCtx;
+
+function ensureAudio(){
+  audioCtx ||= new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+}
+
+function playTick(){
+  try{
+    ensureAudio();
+    const o = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    o.type = 'sine';
+    o.frequency.value = 880;
+
+    g.gain.setValueAtTime(0.0001, audioCtx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.10, audioCtx.currentTime + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.12);
+
+    o.connect(g);
+    g.connect(audioCtx.destination);
+    o.start();
+    o.stop(audioCtx.currentTime + 0.13);
+  }catch(e){}
+}
+
+function playBuzz(){
+  try{
+    ensureAudio();
+    const o = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    o.type = 'triangle';
+    o.frequency.value = 220;
+
+    g.gain.setValueAtTime(0.0001, audioCtx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.10, audioCtx.currentTime + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.10);
+
+    o.connect(g);
+    g.connect(audioCtx.destination);
+    o.start();
+    o.stop(audioCtx.currentTime + 0.11);
+  }catch(e){}
+}
+
+function playCelebrate(){
+  try{
+    ensureAudio();
+    const now = audioCtx.currentTime;
+
+    // 旋律上扬两声
+    const o1 = audioCtx.createOscillator();
+    const g1 = audioCtx.createGain();
+    o1.type = 'triangle';
+    o1.frequency.setValueAtTime(660, now);
+    o1.frequency.exponentialRampToValueAtTime(990, now + 0.12);
+    g1.gain.setValueAtTime(0.0001, now);
+    g1.gain.exponentialRampToValueAtTime(0.14, now + 0.01);
+    g1.gain.exponentialRampToValueAtTime(0.0001, now + 0.18);
+    o1.connect(g1); g1.connect(audioCtx.destination);
+    o1.start(now); o1.stop(now + 0.19);
+
+    const o2 = audioCtx.createOscillator();
+    const g2 = audioCtx.createGain();
+    o2.type = 'sine';
+    o2.frequency.setValueAtTime(880, now + 0.18);
+    o2.frequency.exponentialRampToValueAtTime(1320, now + 0.33);
+    g2.gain.setValueAtTime(0.0001, now + 0.18);
+    g2.gain.exponentialRampToValueAtTime(0.12, now + 0.20);
+    g2.gain.exponentialRampToValueAtTime(0.0001, now + 0.38);
+    o2.connect(g2); g2.connect(audioCtx.destination);
+    o2.start(now + 0.18); o2.stop(now + 0.39);
+
+    // 彩带感音符
+    const notes = [1046.5, 1318.5, 1568, 2093];
+    notes.forEach((f, i) => {
+      const t = now + 0.10 + i * 0.06;
+      const o = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+      o.type = 'square';
+      o.frequency.setValueAtTime(f, t);
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(0.06, t + 0.005);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.05);
+      o.connect(g); g.connect(audioCtx.destination);
+      o.start(t); o.stop(t + 0.055);
+    });
+  }catch(e){}
+}
+
+/* ===== Complete overlay ===== */
+function showComplete(){
+  completeOverlay.classList.add('show');
+  completeOverlay.setAttribute('aria-hidden','false');
+}
+function hideComplete(){
+  completeOverlay.classList.remove('show');
+  completeOverlay.setAttribute('aria-hidden','true');
+}
+completeOverlay.addEventListener('click', hideComplete);
+
+/* ===== Pool empty state ===== */
+function updatePoolEmptyState(){
+  // 左右（桌面/横屏）：空了去框
+  [piecesLeft, piecesRight].forEach(el => {
+    if (!el) return;
+    const empty = el.querySelectorAll('.piece').length === 0;
+    el.classList.toggle('is-empty', empty);
+  });
+
+  // 竖屏 pool：空了整块收起，并消除行间距
+  const mode = getLayoutMode();
+  if (piecesPool && gameArea && mode === 'POOL'){
+    const empty = piecesPool.querySelectorAll('.piece').length === 0;
+    piecesPool.classList.toggle('is-empty', empty);
+    gameArea.classList.toggle('pool-hidden', empty);
+  } else if (gameArea) {
+    gameArea.classList.remove('pool-hidden');
+  }
+}
+
+/* ===== Piece factory ===== */
 function createPiece(src, index) {
   const p = document.createElement('div');
   p.className = 'piece';
@@ -46,63 +177,18 @@ function createPiece(src, index) {
 
   const img = new Image();
   img.src = src;
-  img.draggable = false; // prevent native drag ghost image
+  img.draggable = false;
   p.appendChild(img);
 
-  // passive:false so we can preventDefault on touch/pointer
   p.addEventListener('pointerdown', startDrag, { passive: false });
   return p;
 }
 
+/* ===== Drag helpers ===== */
 function moveAt(clientX, clientY) {
   const x = clientX - offsetX;
   const y = clientY - offsetY;
   dragging.style.transform = `translate(${x}px, ${y}px)`;
-}
-
-function startDrag(e) {
-  // Only left click for mouse
-  if (e.pointerType === 'mouse' && e.button !== 0) return;
-
-  e.preventDefault();
-
-  dragging = e.currentTarget;
-  origin = dragging.parentElement;
-  activePointerId = e.pointerId;
-
-  const r = dragging.getBoundingClientRect();
-  offsetX = e.clientX - r.left;
-  offsetY = e.clientY - r.top;
-
-  Object.assign(dragging.style, {
-    width: `${r.width}px`,
-    height: `${r.height}px`,
-    position: 'fixed',
-    left: '0px',
-    top: '0px',
-    margin: '0',
-    zIndex: 9999,
-    transform: 'translate(0px,0px)',
-    pointerEvents: 'none'
-  });
-
-  document.body.appendChild(dragging);
-
-  try { dragging.setPointerCapture(activePointerId); } catch {}
-
-  moveAt(e.clientX, e.clientY);
-
-  document.addEventListener('pointermove', onDrag, { passive: false });
-  document.addEventListener('pointerup', onEnd, { passive: false });
-  document.addEventListener('pointercancel', onCancel, { passive: false });
-  window.addEventListener('blur', onCancel);
-}
-
-function onDrag(e) {
-  if (!dragging) return;
-  if (activePointerId !== null && e.pointerId !== activePointerId) return;
-  e.preventDefault();
-  moveAt(e.clientX, e.clientY);
 }
 
 function overlapEnough(d, s) {
@@ -132,15 +218,57 @@ function restoreDraggedElement(toParent) {
     transform: '',
     pointerEvents: ''
   });
-
   toParent.appendChild(dragging);
+}
+
+/* ===== Drag events ===== */
+function startDrag(e) {
+  if (e.pointerType === 'mouse' && e.button !== 0) return;
+
+  e.preventDefault();
+
+  dragging = e.currentTarget;
+  origin = dragging.parentElement;
+  activePointerId = e.pointerId;
+
+  const r = dragging.getBoundingClientRect();
+  offsetX = e.clientX - r.left;
+  offsetY = e.clientY - r.top;
+
+  Object.assign(dragging.style, {
+    width: `${r.width}px`,
+    height: `${r.height}px`,
+    position: 'fixed',
+    left: '0px',
+    top: '0px',
+    margin: '0',
+    zIndex: 9997,          // 低于 bottomBar(9998) / overlay(9999)
+    transform: 'translate(0px,0px)',
+    pointerEvents: 'none'
+  });
+
+  document.body.appendChild(dragging);
+
+  try { dragging.setPointerCapture(activePointerId); } catch {}
+  moveAt(e.clientX, e.clientY);
+
+  document.addEventListener('pointermove', onDrag, { passive: false });
+  document.addEventListener('pointerup', onEnd, { passive: false });
+  document.addEventListener('pointercancel', onCancel, { passive: false });
+  window.addEventListener('blur', onCancel);
+}
+
+function onDrag(e) {
+  if (!dragging) return;
+  if (activePointerId !== null && e.pointerId !== activePointerId) return;
+  e.preventDefault();
+  moveAt(e.clientX, e.clientY);
 }
 
 function onCancel() {
   if (!dragging) return;
 
   cleanupDragListeners();
-
   try { dragging.releasePointerCapture(activePointerId); } catch {}
 
   restoreDraggedElement(origin);
@@ -156,49 +284,55 @@ function onEnd(e) {
 
   e.preventDefault();
   cleanupDragListeners();
-
   try { dragging.releasePointerCapture(activePointerId); } catch {}
 
   let placedCorrectly = false;
-
   const idx = Number(dragging.dataset.index);
 
-  document.querySelectorAll('.slot').forEach((slot, i) => {
+  const slots = document.querySelectorAll('.slot');
+  slots.forEach((slot, i) => {
     if (placedCorrectly) return;
 
     if (!slot.children.length && overlapEnough(dragging, slot)) {
       if (i === idx) {
         slot.appendChild(dragging.querySelector('img'));
         slot.classList.add('filled');
+
+        pulseSlot(slot);
+        playTick();
+
         dragging.remove();
         score++;
-        feedback.textContent = '答对了！';
         placedCorrectly = true;
-      } else {
-        feedback.textContent = '答错了……';
+
+        updatePoolEmptyState();
+
+        if (score === TOTAL) {
+          playCelebrate();
+          showComplete();
+        }
       }
     }
   });
 
   if (!placedCorrectly) {
+    playBuzz();
     restoreDraggedElement(origin);
   }
 
-  scoreDiv.textContent = `分数: ${score} / ${ROWS * COLS}`;
+  updateProgress();
 
   dragging = null;
   origin = null;
   activePointerId = null;
 }
 
-/* Move remaining loose pieces between side-panels and pool when layout changes */
+/* ===== Relayout when resize/rotate ===== */
 function relayoutLoosePieces() {
   if (dragging) return;
 
-  const loosePieces = [];
-  [piecesLeft, piecesRight, piecesPool].forEach(container => {
-    loosePieces.push(...Array.from(container.querySelectorAll('.piece')));
-  });
+  const containers = [piecesLeft, piecesRight, piecesPool].filter(Boolean);
+  const loosePieces = containers.flatMap(c => Array.from(c.querySelectorAll('.piece')));
 
   piecesLeft.innerHTML = '';
   piecesRight.innerHTML = '';
@@ -211,8 +345,17 @@ function relayoutLoosePieces() {
     const half = Math.ceil(loosePieces.length / 2);
     loosePieces.forEach((p, i) => (i < half ? piecesLeft.appendChild(p) : piecesRight.appendChild(p)));
   }
+
+  updatePoolEmptyState();
 }
 
+function forceRelayout(){
+  if (dragging) return;
+  relayoutLoosePieces();
+  setTimeout(() => { if (!dragging) relayoutLoosePieces(); }, 150);
+}
+
+/* ===== Init ===== */
 function initGame() {
   puzzle.innerHTML = '';
   piecesLeft.innerHTML = '';
@@ -220,10 +363,10 @@ function initGame() {
   piecesPool.innerHTML = '';
 
   score = 0;
-  feedback.textContent = '';
-  scoreDiv.textContent = `分数: 0 / ${ROWS * COLS}`;
+  hideComplete();
+  updateProgress();
 
-  for (let i = 0; i < ROWS * COLS; i++) {
+  for (let i = 0; i < TOTAL; i++) {
     const s = document.createElement('div');
     s.className = 'slot';
     puzzle.appendChild(s);
@@ -239,29 +382,32 @@ function initGame() {
     const half = Math.ceil(pieces.length / 2);
     pieces.forEach((p, i) => (i < half ? piecesLeft.appendChild(p) : piecesRight.appendChild(p)));
   }
+
+  updatePoolEmptyState();
 }
 
-initGame();
-restartBtn.onclick = initGame;
+/* expose for other pages if needed */
+window.initGame = initGame;
 
-/* Prevent native drag ghost image for IMG (bind once) */
+initGame();
+
+/* Prevent native drag ghost image for IMG */
 document.addEventListener('dragstart', (e) => {
   if (e.target && e.target.tagName === 'IMG') e.preventDefault();
 });
 
-/* Keep pieces visible when user resizes / rotates */
-function forceRelayout(){
-  if (dragging) return;
-  relayoutLoosePieces();
-  // 有些手机 rotate 时尺寸/方向更新会延迟，再补一次更稳
-  setTimeout(() => { if (!dragging) relayoutLoosePieces(); }, 150);
-}
-
 window.addEventListener('resize', forceRelayout);
 window.addEventListener('orientationchange', forceRelayout);
-
-// iOS/Safari 常见：visualViewport 才会触发真实的视口变化
 if (window.visualViewport) {
   window.visualViewport.addEventListener('resize', forceRelayout);
 }
 
+/* Bottom buttons */
+if (btnBack) {
+  btnBack.addEventListener('click', () => {
+    return; // 暂时留空
+  });
+}
+if (btnRestart) {
+  btnRestart.addEventListener('click', initGame);
+}
